@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Appointment Booking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Online Appointment Booking</h1>
+      <p>Register, log in, choose a service, and manage appointments.</p>
+    </div>
+    <div id="userPanel" class="user-panel hidden">
+      <span id="currentUser"></span>
+      <button id="logoutButton" type="button">Logout</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section id="message" class="message hidden"></section>
+
+    <section id="authSection" class="grid two-columns">
+      <article class="card">
+        <h2>Register</h2>
+        <form id="registerForm">
+          <label for="registerName">Name</label>
+          <input id="registerName" name="name" type="text" autocomplete="name" required>
+
+          <label for="registerEmail">Email</label>
+          <input id="registerEmail" name="email" type="email" autocomplete="email" required>
+
+          <label for="registerPassword">Password</label>
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password" required>
+
+          <button type="submit">Create Account</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" name="email" type="email" autocomplete="email" required>
+
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+
+          <button type="submit">Login</button>
+        </form>
+        <p class="hint">Admin: admin@example.com / 123456</p>
+      </article>
+    </section>
+
+    <section class="grid two-columns">
+      <article class="card">
+        <div class="section-title">
+          <h2>Services</h2>
+          <button id="refreshServicesButton" class="secondary" type="button">Refresh</button>
+        </div>
+        <div id="servicesList" class="list"></div>
+      </article>
+
+      <article id="bookingSection" class="card hidden">
+        <h2>Book Appointment</h2>
+        <form id="appointmentForm">
+          <label for="serviceSelect">Service</label>
+          <select id="serviceSelect" name="serviceId" required></select>
+
+          <label for="appointmentDate">Date</label>
+          <input id="appointmentDate" name="date" type="date" required>
+
+          <label for="appointmentTime">Time</label>
+          <input id="appointmentTime" name="time" type="time" min="09:00" max="17:00" required>
+
+          <button type="submit">Book Appointment</button>
+        </form>
+      </article>
+    </section>
+
+    <section id="appointmentsSection" class="card hidden">
+      <div class="section-title">
+        <h2>My Appointments</h2>
+        <button id="refreshAppointmentsButton" class="secondary" type="button">Refresh</button>
+      </div>
+      <div id="appointmentsList" class="table-wrap"></div>
+    </section>
+
+    <section id="adminSection" class="card hidden">
+      <div class="section-title">
+        <h2>Admin Appointments</h2>
+        <button id="refreshAdminButton" class="secondary" type="button">Refresh</button>
+      </div>
+      <div id="adminAppointmentsList" class="table-wrap"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
