@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
 
@@ -7,51 +7,48 @@ const router = express.Router();
 
 function createToken(user) {
   return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    },
+    { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
-    {
-      algorithm: 'HS256',
-      expiresIn: '7d'
-    }
+    { algorithm: 'HS256', expiresIn: '7d' }
   );
 }
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, family, email, phone, national_code: nationalCode, password, role = 'user' } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
+    if (!name || !family || !email || !phone || !nationalCode || !password) {
+      return res.status(400).json({ error: 'All registration fields are required.' });
     }
 
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (!['user', 'provider'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be user or provider.' });
+    }
 
-    if (existingUser) {
-      return res.status(409).json({ error: 'Email is already registered.' });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await db.get(`
+      SELECT id FROM users WHERE email = ? OR phone = ? OR national_code = ?
+    `, [normalizedEmail, phone, nationalCode]);
+
+    if (existing) {
+      return res.status(409).json({ error: 'Email, phone, or national code is already registered.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const result = db.prepare(`
-      INSERT INTO users (name, email, password, role)
-      VALUES (?, ?, ?, ?)
-    `).run(name, email, hashedPassword, 'user');
+    const result = await db.run(`
+      INSERT INTO users (name, family, email, phone, national_code, password, role)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [name, family, normalizedEmail, phone, nationalCode, hashedPassword, role]);
 
-    const user = {
-      id: result.lastInsertRowid,
-      name,
-      email,
-      role: 'user'
-    };
+    if (role === 'provider') {
+      await db.run(`
+        INSERT INTO cancellation_policies (provider_id, min_hours_before, enable_penalty, description)
+        VALUES (?, 24, 0, ?)
+      `, [result.id, 'لغو نوبت تا ۲۴ ساعت قبل بدون جریمه امکان‌پذیر است.']);
+    }
 
-    return res.status(201).json({
-      message: 'Registration successful.',
-      token: createToken(user),
-      user
-    });
+    const user = { id: result.id, name, family, email: normalizedEmail, phone, national_code: nationalCode, role };
+    return res.status(201).json({ message: 'Registration successful.', token: createToken(user), user });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Internal server error.' });
@@ -66,28 +63,27 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.trim().toLowerCase()]);
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const passwordMatches = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatches) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'This account has been deactivated.' });
     }
 
-    return res.json({
-      message: 'Login successful.',
-      token: createToken(user),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    const publicUser = {
+      id: user.id,
+      name: user.name,
+      family: user.family,
+      email: user.email,
+      phone: user.phone,
+      national_code: user.national_code,
+      role: user.role
+    };
+
+    return res.json({ message: 'Login successful.', token: createToken(user), user: publicUser });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Internal server error.' });

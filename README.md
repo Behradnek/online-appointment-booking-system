@@ -1,43 +1,46 @@
-# Online Appointment Booking System
+# NobatYab - Appointment Booking Platform
 
-A beginner-friendly appointment booking system built with Node.js, Express, SQLite, JWT authentication, bcrypt password hashing, and a simple HTML/CSS/JavaScript frontend.
+NobatYab is a Persian-friendly multi-service appointment platform built with Express, SQLite, JWT, Vue 3, and Vite.
+
+Persian documentation: [README.fa.md](README.fa.md)
 
 ## Features
 
-- Register and log in as a user.
-- View available services.
-- Book appointments.
-- View and cancel your own appointments.
-- Admin users can view all appointments, confirm appointments, and cancel appointments.
-- SQLite database and seed data are created automatically when the backend starts.
+- Three roles: admin, provider, and user.
+- JWT login and registration with bcrypt password hashes.
+- Service categories and provider-specific offerings.
+- Provider working hours for each weekday.
+- Jalali date entry in the frontend with Gregorian storage in the backend.
+- Available-slot calculation and overlap prevention.
+- Booking for yourself or another person.
+- Simulated payment and SMS logs.
+- Provider cancellation policies with optional penalty behavior.
+- Admin approval workflow for new provider service requests.
+- Admin user activation and deactivation.
 
 ## Project Structure
 
 ```text
-project/
-├── backend/
-│   ├── server.js
-│   ├── database.js
-│   ├── package.json
-│   ├── .env
-│   ├── .env.example
-│   ├── routes/
-│   ├── middlewares/
-│   └── database.sqlite
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-├── README.md
-└── README.fa.md
+backend/
+├── server.js
+├── database.js
+├── seed.js
+├── routes/
+├── middleware/
+└── utils/
+
+frontend/
+├── index.html
+├── package.json
+└── src/
+    ├── components/
+    ├── router/
+    ├── services/
+    ├── utils/
+    └── views/
 ```
 
-## Requirements
-
-- Node.js
-- npm
-
-## Backend Setup
+## Run the Backend
 
 ```bash
 cd backend
@@ -45,129 +48,86 @@ npm install
 npm start
 ```
 
-For development with nodemon:
+Development mode:
 
 ```bash
 npm run dev
 ```
 
-The backend runs on:
+The API runs on `http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
-
-## Environment Variables
-
-Create or update `backend/.env`:
+Create `backend/.env` from `backend/.env.example`:
 
 ```env
 PORT=3000
 JWT_SECRET=replace_this_with_a_secure_secret
 ```
 
-`PORT` is optional. If it is not provided, the server uses port `3000`.
+## Run the Frontend
 
-`JWT_SECRET` is required for signing and verifying JWT tokens.
+Open another terminal:
 
-## Database
-
-The SQLite database is created automatically at:
-
-```text
-backend/database.sqlite
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
-When the backend starts, it creates these tables if they do not exist:
+Open `http://localhost:5173`.
 
-- `users`
-- `services`
-- `appointments`
+## Database and Sample Data
 
-It also seeds these services if the services table is empty:
+The SQLite database is created automatically at `backend/database.sqlite`. Tables and test users are seeded on backend startup. Passwords are stored as bcrypt hashes.
 
-- General Consultation
-- Nutrition Consultation
-- Dentistry
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@example.com` | `123456` |
+| Provider | `provider@example.com` | `123456` |
+| User | `user@example.com` | `123456` |
 
-## Admin Login
+The seed also creates Persian categories, three services, provider working hours, and a default cancellation policy.
 
-An admin user is created automatically if it does not already exist:
+## Main API Routes
 
-```text
-Email: admin@example.com
-Password: 123456
-Role: admin
-```
+### Public and authentication
 
-The admin password is stored as a bcrypt hash.
+- `POST /api/register`
+- `POST /api/login`
+- `GET /api/categories`
+- `GET /api/services`
+- `GET /api/providers/:serviceId`
+- `GET /api/available-slots?providerId=&date=`
 
-## Frontend
+### User
 
-Open this file in your browser:
+- `POST /api/simulate-payment`
+- `POST /api/appointments`
+- `GET /api/appointments/my`
+- `DELETE /api/appointments/:id`
 
-```text
-frontend/index.html
-```
+### Provider
 
-Make sure the backend is running first. The frontend sends API requests to:
+- `POST /api/service-requests`
+- `GET /api/service-requests/my`
+- `POST /api/working-hours`
+- `GET /api/working-hours/:providerId`
+- `GET /api/provider/appointments`
+- `PUT /api/provider/appointments/:id/status`
+- `GET /api/provider/cancellation-policy`
+- `PUT /api/provider/cancellation-policy`
 
-```text
-http://localhost:3000/api
-```
+### Admin
 
-## API Endpoints
+- `GET /api/admin/service-requests`
+- `PUT /api/admin/service-requests/:id/approve`
+- `PUT /api/admin/service-requests/:id/reject`
+- `GET /api/admin/users`
+- `PUT /api/admin/users/:id/toggle-status`
 
-### Authentication
+## Notes
 
-```http
-POST /api/register
-POST /api/login
-```
-
-### Services
-
-```http
-GET /api/services
-```
-
-### User Appointments
-
-These routes require:
-
-```http
-Authorization: Bearer <token>
-```
-
-```http
-GET /api/appointments
-POST /api/appointments
-DELETE /api/appointments/:id
-```
-
-### Admin Appointments
-
-These routes require a valid admin token:
-
-```http
-GET /api/admin/appointments
-PUT /api/admin/appointments/:id/confirm
-PUT /api/admin/appointments/:id/cancel
-```
-
-## Appointment Rules
-
-- Date must use `YYYY-MM-DD`.
-- Time must use `HH:MM`.
-- Date must be today or in the future.
-- Time must be between `09:00` and `17:00`.
-- A date/time cannot be booked if another non-canceled appointment already exists at that slot.
-- Canceling an appointment updates its status to `canceled`; it does not delete the row.
-
-## Persian Documentation
-
-Persian setup and usage instructions are available in:
-
-```text
-README.fa.md
-```
+- Dates are stored as Gregorian `YYYY-MM-DD`.
+- Times are stored as `HH:MM`.
+- SMS messages are simulated: they are printed in the backend terminal and inserted into `sms_logs`.
+- Payments are simulated and succeed immediately.
+- `backend/.env`, `backend/database.sqlite`, `node_modules`, and frontend build output are ignored by git.
